@@ -1,0 +1,196 @@
+services:
+  configsvr:
+    container_name: configsvr
+    image: mongo:latest
+    restart: always
+    command: mongod --configsvr --replSet config_server --bind_ip_all --port 27017
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.2
+    ports:
+      - '27017:27017'
+    volumes:
+      - ./data/configsvr:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 5s
+      start_period: 10s
+
+  shard1a:
+    container_name: shard1a
+    image: mongo:latest
+    restart: always
+    command: ['mongod', '--shardsvr', '--replSet', 'shard1', '--bind_ip_all', '--port', '27018']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.3
+    ports:
+      - '27018:27018'
+    volumes:
+      - ./data/shard1a:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27018/test --quiet
+      interval: 5s
+      start_period: 15s
+  shard1b:
+    container_name: shard1b
+    image: mongo:latest
+    restart: always
+    command: ['mongod', '--shardsvr', '--replSet', 'shard1', '--bind_ip_all', '--port', '27030']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.30
+    ports:
+      - '27030:27030'
+    volumes:
+      - ./data/shard1b:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27030/test --quiet
+      interval: 5s
+      start_period: 15s
+  shard1c:
+    container_name: shard1c
+    image: mongo:latest
+    restart: always
+    command: ['mongod', '--shardsvr', '--replSet', 'shard1', '--bind_ip_all', '--port', '27031']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.31
+    ports:
+      - '27031:27031'
+    volumes:
+      - ./data/shard1c:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27031/test --quiet
+      interval: 5s
+      start_period: 15s
+
+  shard2a:
+    container_name: shard2a
+    image: mongo:latest
+    command: ['mongod', '--shardsvr', '--replSet', 'shard2', '--bind_ip_all', '--port', '27019']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.4
+    ports:
+      - '27019:27019'
+    volumes:
+      - ./data/shard2a:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27019/test --quiet
+      interval: 5s
+      start_period: 15s
+  shard2b:
+    container_name: shard2b
+    image: mongo:latest
+    restart: always
+    command: ['mongod', '--shardsvr', '--replSet', 'shard2', '--bind_ip_all', '--port', '27040']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.40
+    ports:
+      - '27040:27040'
+    volumes:
+      - ./data/shard2b:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27040/test --quiet
+      interval: 5s
+      start_period: 15s
+  shard2c:
+    container_name: shard2c
+    image: mongo:latest
+    restart: always
+    command: ['mongod', '--shardsvr', '--replSet', 'shard2', '--bind_ip_all', '--port', '27041']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.41
+    ports:
+      - '27041:27041'
+    volumes:
+      - ./data/shard2c:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27041/test --quiet
+      interval: 5s
+      start_period: 15s
+
+  redis_1:
+    container_name: redis_1
+    image: "redis:latest"
+    ports:
+      - "6379"
+    volumes:
+      - ./data/redis_1:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.50
+
+  redis_setup:
+    container_name: redis_setup
+    image: redis:latest
+    depends_on:
+      - redis_1
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.56
+    volumes:
+      - ./scripts:/scripts
+    command: ['bash', '/scripts/redis-init.sh']
+
+  mongos_router:
+    container_name: mongos_router
+    image: mongo:latest
+    depends_on:
+      - configsvr
+      - shard1a
+      - shard2a
+    restart: always
+    ports:
+      - '27020:27020'
+    command: ['mongos', '--configdb', 'config_server/configsvr:27017', '--bind_ip_all', '--port', '27020']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.5
+    healthcheck:
+      test: echo 'db.adminCommand("ping").ok' | mongosh mongos_router:27020/admin --quiet
+      interval: 5s
+      start_period: 10s
+
+  mongo_setup:
+    container_name: mongo_setup
+    image: mongo:latest
+    depends_on:
+      - mongos_router
+    volumes:
+      - ./scripts:/scripts
+    command: ['bash', '/scripts/mongo-init.sh']
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.6
+
+  pymongo_api:
+    container_name: pymongo_api
+    build: 
+      context: api_app
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo_setup
+      - redis_setup
+    ports:
+      - 8080:8080
+    environment:
+      MONGODB_URL: "mongodb://mongos_router:27020"
+      MONGODB_DATABASE_NAME: "somedb"
+      REDIS_URL: "redis://redis_1:6379"
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.10
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 173.17.0.0/16
