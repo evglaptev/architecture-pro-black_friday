@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sleep 2
+sleep 10
 
 mongosh --host configsvr:27017 <<EOF
 rs.initiate({
@@ -12,7 +12,7 @@ rs.initiate({
 })
 EOF
 
-sleep 2
+sleep 10
 
 mongosh --host shard1a:27018 <<EOF
 rs.initiate({
@@ -36,7 +36,7 @@ rs.initiate({
 })
 EOF
 
-sleep 5
+sleep 10
 
 mongosh --host mongos_router:27020 <<EOF
 sh.addShard("shard1/shard1a:27018");

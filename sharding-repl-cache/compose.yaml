@@ -6,7 +6,7 @@ services:
     command: mongod --configsvr --replSet config_server --bind_ip_all --port 27017
     networks:
       app-network:
-        ipv4_address: 173.17.3.2
+        ipv4_address: 173.17.0.2
     ports:
       - '27017:27017'
     volumes:
@@ -23,7 +23,7 @@ services:
     command: ['mongod', '--shardsvr', '--replSet', 'shard1', '--bind_ip_all', '--port', '27018']
     networks:
       app-network:
-        ipv4_address: 173.17.3.3
+        ipv4_address: 173.17.0.3
     ports:
       - '27018:27018'
     volumes:
@@ -39,7 +39,7 @@ services:
     command: ['mongod', '--shardsvr', '--replSet', 'shard1', '--bind_ip_all', '--port', '27030']
     networks:
       app-network:
-        ipv4_address: 173.17.3.30
+        ipv4_address: 173.17.0.30
     ports:
       - '27030:27030'
     volumes:
@@ -55,7 +55,7 @@ services:
     command: ['mongod', '--shardsvr', '--replSet', 'shard1', '--bind_ip_all', '--port', '27031']
     networks:
       app-network:
-        ipv4_address: 173.17.3.31
+        ipv4_address: 173.17.0.31
     ports:
       - '27031:27031'
     volumes:
@@ -71,7 +71,7 @@ services:
     command: ['mongod', '--shardsvr', '--replSet', 'shard2', '--bind_ip_all', '--port', '27019']
     networks:
       app-network:
-        ipv4_address: 173.17.3.4
+        ipv4_address: 173.17.0.4
     ports:
       - '27019:27019'
     volumes:
@@ -87,7 +87,7 @@ services:
     command: ['mongod', '--shardsvr', '--replSet', 'shard2', '--bind_ip_all', '--port', '27040']
     networks:
       app-network:
-        ipv4_address: 173.17.3.40
+        ipv4_address: 173.17.0.40
     ports:
       - '27040:27040'
     volumes:
@@ -103,7 +103,7 @@ services:
     command: ['mongod', '--shardsvr', '--replSet', 'shard2', '--bind_ip_all', '--port', '27041']
     networks:
       app-network:
-        ipv4_address: 173.17.3.41
+        ipv4_address: 173.17.0.41
     ports:
       - '27041:27041'
     volumes:
@@ -124,7 +124,7 @@ services:
     command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
     networks:
       app-network:
-        ipv4_address: 173.17.3.50
+        ipv4_address: 173.17.0.50
 
   redis_setup:
     container_name: redis_setup
@@ -133,7 +133,7 @@ services:
       - redis_1
     networks:
       app-network:
-        ipv4_address: 173.17.3.56
+        ipv4_address: 173.17.0.56
     volumes:
       - ./scripts:/scripts
     command: ['bash', '/scripts/redis-init.sh']
@@ -151,7 +151,7 @@ services:
     command: ['mongos', '--configdb', 'config_server/configsvr:27017', '--bind_ip_all', '--port', '27020']
     networks:
       app-network:
-        ipv4_address: 173.17.3.5
+        ipv4_address: 173.17.0.5
     healthcheck:
       test: echo 'db.adminCommand("ping").ok' | mongosh mongos_router:27020/admin --quiet
       interval: 5s
@@ -167,7 +167,7 @@ services:
     command: ['bash', '/scripts/mongo-init.sh']
     networks:
       app-network:
-        ipv4_address: 173.17.3.6
+        ipv4_address: 173.17.0.6
 
   pymongo_api:
     container_name: pymongo_api
@@ -185,7 +185,7 @@ services:
       REDIS_URL: "redis://redis_1:6379"
     networks:
       app-network:
-        ipv4_address: 173.17.3.10
+        ipv4_address: 173.17.0.10
 
 networks:
   app-network:
@@ -193,4 +193,4 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 173.17.3.0/16
+        - subnet: 173.17.0.0/16
